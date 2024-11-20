@@ -47,7 +47,13 @@ public class UsuarioController {
     public ResponseEntity<UsuarioInsertDTO> insert(
             @RequestBody UsuarioInsertDTO nuevoUser
     ) {
-        return null;
+        if(nuevoUser == null || nuevoUser.getNombre() == null || nuevoUser.getPassword1() == null || nuevoUser.getPassword2() == null || nuevoUser.getRole() == null) {
+            // Lanzamos una excepcion
+        }
+
+        UsuarioInsertDTO usuarioDTO = usuarioService.insert(nuevoUser);
+
+        return new ResponseEntity<>(usuarioDTO, HttpStatus.OK);
     }
 
 }

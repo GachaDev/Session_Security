@@ -22,6 +22,11 @@ public class RutaProtegidaController {
 
         // Tenemos que obtener la cookie -> y de la cookie vamos a obtener el tokenSession
         String token = "";
+
+        if (request.getCookies() == null) {
+            throw new RuntimeException("Cookies no pueden ser null");
+        }
+
         for(Cookie cookie: request.getCookies()) {
             if(cookie.getName().equals("tokenSession")) {
                 token = cookie.getValue();

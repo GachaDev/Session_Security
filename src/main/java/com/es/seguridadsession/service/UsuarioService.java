@@ -6,6 +6,7 @@ import com.es.seguridadsession.model.Session;
 import com.es.seguridadsession.model.Usuario;
 import com.es.seguridadsession.repository.SessionRepository;
 import com.es.seguridadsession.repository.UsuarioRepository;
+import com.es.seguridadsession.utils.TokenUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -31,30 +32,53 @@ public class UsuarioService {
 
         Usuario u = users
                 .stream()
-                .filter(user -> user.getNombre().equals(nombreUser) && user.getPassword().equals(passUser))
+                .filter(user -> user.getNombre().equals(nombreUser) && TokenUtil.checkPassword(passUser, user.getPassword()))
                 .findFirst()
-                .orElseThrow(); // LANZAR EXCEPCION PROPIA
+                .orElseThrow(() -> new RuntimeException("Contraseña incorrecta")); // LANZAR EXCEPCION PROPIA
 
         // Si coincide -> Insertar una sesión
         // Genero un TOKEN
-        String token = UUID.randomUUID().toString(); // Esto genera un token aleatorio
+        String token = "";
+
+        try {
+            token = TokenUtil.encrypt(u.getNombre());
+        } catch (Exception e) {
+            throw new RuntimeException("Error al generar el token");
+        }
+
         System.out.println("Token generado: "+token);
-        // Almaceno la Session en la base de datos
+
         Session s = new Session();
         s.setToken(token);
         s.setUsuario(u);
-//        s.setExpirationDate(
-//                LocalDateTime.of(
-//                        LocalDate.of(2024, 11, 20),
-//                        LocalTime.now()
-//                ));
+
         s.setExpirationDate(
-                LocalDateTime.now().plusDays(1)
+                LocalDateTime.now().plusMinutes(1)
         );
 
         sessionRepository.save(s);
 
         return token;
 
+    }
+
+    public UsuarioInsertDTO insert(UsuarioInsertDTO userDTO) {
+        Usuario user = new Usuario();
+
+        if (!userDTO.getPassword1().equals(userDTO.getPassword2())) {
+            throw new RuntimeException("Las contraseñas deben de coincidir");
+        }
+
+        if (userDTO.getRole().toUpperCase().equals("USER") || userDTO.getRole().toUpperCase().equals("ADMIN")) {
+            user.setRole(userDTO.getRole().toUpperCase());
+            user.setNombre(userDTO.getNombre());
+            user.setPassword(TokenUtil.hashPassword(userDTO.getPassword1()));
+
+            usuarioRepository.save(user);
+        } else {
+            throw new RuntimeException("El rol debe de ser USER O ADMIN");
+        }
+
+        return userDTO;
     }
 }

@@ -18,7 +18,7 @@ public class SessionService {
         // Comprobamos que el token existe y es válido
         Session s = sessionRepository
                 .findByToken(token)
-                .orElseThrow();
+                .orElseThrow(() -> new RuntimeException("not found"));
 
         // SI ESTOY EN ESTE PUNTO, es que ha encontrado el TOKEN
         // Compruebo si la fecha es correcta
