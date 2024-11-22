@@ -1,8 +1,15 @@
 package com.es.seguridadsession.controller;
 
 import com.es.seguridadsession.dto.ProductoDTO;
+import com.es.seguridadsession.exception.BadRequestException;
+import com.es.seguridadsession.exception.NotFoundException;
+import com.es.seguridadsession.exception.UnauthorizedException;
 import com.es.seguridadsession.service.ProductoService;
+import com.es.seguridadsession.service.SessionService;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,6 +25,9 @@ public class ProductoController {
     @Autowired
     private ProductoService productoService;
 
+    @Autowired
+    private SessionService sessionService;
+
 
     /**
      * GET PRODUCTO POR SU ID
@@ -28,9 +38,31 @@ public class ProductoController {
      */
     @GetMapping("/{id}")
     public ResponseEntity<ProductoDTO> getById(
-            @PathVariable String id
+            @PathVariable String id,
+            HttpServletRequest request
     ) {
-        // TODO
+        if (id == null || id.isBlank()) {
+            throw new BadRequestException("La id no puede estar vacía");
+        }
+
+        String token = "";
+
+        if (request.getCookies() == null) {
+            throw new BadRequestException("Las cookies no pueden ser null");
+        }
+
+        for(Cookie cookie: request.getCookies()) {
+            if(cookie.getName().equals("tokenSession")) {
+                token = cookie.getValue();
+            }
+        }
+
+        if (sessionService.checkToken(token)) {
+            ProductoDTO producto = productoService.getById(id);
+
+            return new ResponseEntity<>(producto, HttpStatus.OK);
+        }
+
         return null;
     }
 
@@ -42,9 +74,33 @@ public class ProductoController {
      */
     @PostMapping("/")
     public ResponseEntity<ProductoDTO> insert(
-            @RequestBody ProductoDTO productoDTO
+            @RequestBody ProductoDTO productoDTO,
+            HttpServletRequest request
     ) {
         // TODO
+
+        if (productoDTO == null || productoDTO.getNombre() == null) {
+            throw new BadRequestException("Producto no puede ser null");
+        }
+
+        String token = "";
+
+        if (request.getCookies() == null) {
+            throw new BadRequestException("Las cookies no pueden ser null");
+        }
+
+        for(Cookie cookie: request.getCookies()) {
+            if(cookie.getName().equals("tokenSession")) {
+                token = cookie.getValue();
+            }
+        }
+
+        if (sessionService.checkToken(token)) {
+            ProductoDTO producto = productoService.insert(productoDTO, token);
+
+            return new ResponseEntity<>(producto, HttpStatus.OK);
+        }
+
         return null;
     }
 

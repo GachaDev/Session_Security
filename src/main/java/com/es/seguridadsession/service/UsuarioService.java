@@ -52,7 +52,7 @@ public class UsuarioService {
         Session s = new Session();
         s.setToken(token);
         s.setUsuario(u);
-        s.setExpirationDate(LocalDateTime.now().plusMinutes(1));
+        s.setExpirationDate(LocalDateTime.now().plusMinutes(2));
 
         sessionRepository.save(s);
 
