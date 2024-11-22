@@ -2,6 +2,8 @@ package com.es.seguridadsession.service;
 
 import com.es.seguridadsession.dto.UsuarioDTO;
 import com.es.seguridadsession.dto.UsuarioInsertDTO;
+import com.es.seguridadsession.exception.BadRequestException;
+import com.es.seguridadsession.exception.UnauthorizedException;
 import com.es.seguridadsession.model.Session;
 import com.es.seguridadsession.model.Usuario;
 import com.es.seguridadsession.repository.SessionRepository;
@@ -21,10 +23,10 @@ public class UsuarioService {
     private UsuarioRepository usuarioRepository;
     @Autowired
     private SessionRepository sessionRepository;
+    @Autowired
+    private TokenUtil tokenUtil;
 
     public String login(UsuarioDTO userLogin) {
-
-        // Comprobar si user y pass son correctos -> obtener de la BDD el usuario
         String nombreUser = userLogin.getNombre();
         String passUser = userLogin.getPassword();
 
@@ -32,51 +34,46 @@ public class UsuarioService {
 
         Usuario u = users
                 .stream()
-                .filter(user -> user.getNombre().equals(nombreUser) && TokenUtil.checkPassword(passUser, user.getPassword()))
+                .filter(user -> user.getNombre().equals(nombreUser) && tokenUtil.checkPassword(passUser, user.getPassword()))
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("Contraseña incorrecta")); // LANZAR EXCEPCION PROPIA
+                .orElseThrow(() -> new UnauthorizedException("Contraseña incorrecta"));
 
-        // Si coincide -> Insertar una sesión
-        // Genero un TOKEN
+
         String token = "";
 
         try {
-            token = TokenUtil.encrypt(u.getNombre());
+            token = tokenUtil.encrypt(u.getNombre());
         } catch (Exception e) {
             throw new RuntimeException("Error al generar el token");
         }
 
-        System.out.println("Token generado: "+token);
+        System.out.println("Token generado: " + token);
 
         Session s = new Session();
         s.setToken(token);
         s.setUsuario(u);
-
-        s.setExpirationDate(
-                LocalDateTime.now().plusMinutes(1)
-        );
+        s.setExpirationDate(LocalDateTime.now().plusMinutes(1));
 
         sessionRepository.save(s);
 
         return token;
-
     }
 
     public UsuarioInsertDTO insert(UsuarioInsertDTO userDTO) {
         Usuario user = new Usuario();
 
         if (!userDTO.getPassword1().equals(userDTO.getPassword2())) {
-            throw new RuntimeException("Las contraseñas deben de coincidir");
+            throw new BadRequestException("Las contraseñas deben de coincidir");
         }
 
         if (userDTO.getRole().toUpperCase().equals("USER") || userDTO.getRole().toUpperCase().equals("ADMIN")) {
             user.setRole(userDTO.getRole().toUpperCase());
             user.setNombre(userDTO.getNombre());
-            user.setPassword(TokenUtil.hashPassword(userDTO.getPassword1()));
+            user.setPassword(tokenUtil.hashPassword(userDTO.getPassword1()));
 
             usuarioRepository.save(user);
         } else {
-            throw new RuntimeException("El rol debe de ser USER O ADMIN");
+            throw new BadRequestException("Rol invalido (debe de ser user o admin)");
         }
 
         return userDTO;

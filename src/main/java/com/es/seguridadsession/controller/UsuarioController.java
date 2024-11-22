@@ -3,6 +3,7 @@ package com.es.seguridadsession.controller;
 import com.es.seguridadsession.dto.UsuarioDTO;
 import com.es.seguridadsession.dto.UsuarioInsertDTO;
 
+import com.es.seguridadsession.exception.BadRequestException;
 import com.es.seguridadsession.service.UsuarioService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
@@ -28,7 +29,7 @@ public class UsuarioController {
 
         // 1º Asegurarnos que userLogin no viene null
         if(userLogin == null || userLogin.getNombre() == null || userLogin.getPassword() == null) {
-            // Lanzamos una excepcion
+            throw new BadRequestException("userLogin no puede ser null");
         }
 
         // 2º Comprobar usuario y contraseña en el service y obtener token
@@ -48,7 +49,7 @@ public class UsuarioController {
             @RequestBody UsuarioInsertDTO nuevoUser
     ) {
         if(nuevoUser == null || nuevoUser.getNombre() == null || nuevoUser.getPassword1() == null || nuevoUser.getPassword2() == null || nuevoUser.getRole() == null) {
-            // Lanzamos una excepcion
+            throw new BadRequestException("nuevoUser no puede ser null");
         }
 
         UsuarioInsertDTO usuarioDTO = usuarioService.insert(nuevoUser);
